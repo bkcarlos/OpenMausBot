@@ -166,6 +166,9 @@ struct ChatListView: View {
                 }
             }
 #endif
+            // iOS-on-Mac builds each sheet in a new hosting controller that does
+            // not inherit @EnvironmentObject. A List or Form that then reads
+            // Session traps in EnvironmentObject.error() inside SheetBridge.present.
             .sheet(isPresented: $showingCalendar) {
                 RoutineCalendarView()
                     .environmentObject(session)
@@ -175,6 +178,7 @@ struct ChatListView: View {
                     showingUpdates = false
                     path.append(chat)
                 }
+                .environmentObject(session)
             }
             .fullScreenCover(isPresented: $showingWalkie) {
                 WalkieView { chat in
@@ -188,9 +192,11 @@ struct ChatListView: View {
                     showingNewGroup = false
                     path.append(Chat.room(room))
                 }
+                .environmentObject(session)
             }
             .sheet(isPresented: $showingNewSection) {
                 NewSectionSheet()
+                    .environmentObject(session)
             }
             .sheet(item: $managingThreads) { chat in
                 TaskManagerView(chat: chat) { threadId in
@@ -198,6 +204,7 @@ struct ChatListView: View {
                     managingThreads = nil
                     path.append(Chat.bot(bot))
                 }
+                .environmentObject(session)
             }
             .task(id: query) {
                 let expected = query
