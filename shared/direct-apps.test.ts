@@ -10,8 +10,15 @@ import {
 import { mcpOAuthRedirectUri } from "./mcp-oauth-redirect.ts";
 
 describe("direct app authorization", () => {
-  it("keeps Gmail and Slack on their own provider servers", () => {
-    expect(DIRECT_APPS.map((app) => app.name)).toEqual(["gmail", "slack"]);
+  it("puts Outlook mail ahead of Gmail, then Slack", () => {
+    expect(DIRECT_APPS.map((app) => app.name)).toEqual(["outlook", "gmail", "slack"]);
+    expect(directAppByName("outlook")?.transport).toBe("graph");
+    expect(directAppByName("outlook")?.scopes).toEqual([
+      "offline_access",
+      "https://graph.microsoft.com/Mail.ReadWrite",
+      "https://graph.microsoft.com/Mail.Send",
+    ]);
+    expect(JSON.stringify(DIRECT_APPS)).not.toContain("workiq");
     expect(directAppByName("gmail")?.url).toBe("https://gmailmcp.googleapis.com/mcp/v1");
     expect(directAppByName("slack")?.url).toBe("https://mcp.slack.com/mcp");
     expect(directAppByName("gmail")?.scopes).toEqual([
@@ -20,6 +27,10 @@ describe("direct app authorization", () => {
     ]);
     expect(directAppByName("slack")?.scopes).toEqual([]);
     expect(directAppByName("gmail")?.draftsOnly).toBe(true);
+    expect(directAppCreateBody(directAppByName("outlook")!, { clientId: "id", clientSecret: "secret" })).toEqual({
+      ok: false,
+      error: "not-mcp",
+    });
   });
 
   it("shows a stable loopback redirect before the server is saved", () => {

@@ -1,23 +1,60 @@
-// Apps the person authorizes one at a time, against that provider's own
-// remote MCP server. The OAuth token stays in this computer's MCP sign-in
-// store. Composio is not on the path, and authorizing Gmail does not
-// authorize Slack.
+// Apps the person authorizes one at a time. Gmail and Slack use that
+// provider's remote MCP server. Outlook mail is a Microsoft Graph grant on
+// this computer: there is no public Outlook-only remote MCP, and Work IQ
+// covers all of Microsoft 365. The token stays on this computer. Composio
+// is not on the path, and authorizing one app does not authorize another.
 import { mcpOAuthRedirectUri } from "./mcp-oauth-redirect.ts";
 
 export interface DirectApp {
-  id: "gmail" | "slack";
-  /** Stored MCP server name. Fixed, so the grant cannot be relabeled onto another host. */
+  id: "outlook" | "gmail" | "slack";
+  /** Stored name. Fixed, so the grant cannot be relabeled onto another host. */
   name: string;
   title: string;
+  /** Remote MCP URL, or the Graph address Outlook uses to derive its redirect. */
   url: string;
   /** Scopes sent on the consent screen. Empty means the provider's own list. */
   scopes: readonly string[];
   docsUrl: string;
   /** The provider's server creates drafts and does not send. */
   draftsOnly: boolean;
+  /** graph: this computer calls Microsoft Graph. mcp: a remote MCP server. */
+  transport: "graph" | "mcp";
+}
+
+/** Stable identity for the Outlook redirect port. Not an MCP server. */
+export const OUTLOOK_IDENTITY_URL = "https://graph.microsoft.com/v1.0/me/messages";
+
+/** Mail only. Calendar, files, and Teams are intentionally absent. */
+export const OUTLOOK_SCOPES = [
+  "offline_access",
+  "https://graph.microsoft.com/Mail.ReadWrite",
+  "https://graph.microsoft.com/Mail.Send",
+] as const;
+
+export const OUTLOOK_SIGN_IN_PATH = "/api/outlook/sign-in";
+export const OUTLOOK_MCP_PATH = "/api/outlook/mcp";
+
+const TENANT_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/** `common` when omitted. A directory id, or one of Microsoft's three aliases. */
+export function outlookTenant(value: string | undefined): string | null {
+  const tenant = (value ?? "").trim() || "common";
+  if (tenant === "common" || tenant === "organizations" || tenant === "consumers") return tenant;
+  if (TENANT_ID.test(tenant)) return tenant.toLowerCase();
+  return null;
 }
 
 export const DIRECT_APPS: readonly DirectApp[] = [
+  {
+    id: "outlook",
+    name: "outlook",
+    title: "Outlook",
+    url: OUTLOOK_IDENTITY_URL,
+    scopes: OUTLOOK_SCOPES,
+    docsUrl: "https://learn.microsoft.com/en-us/graph/auth-register-app-v2",
+    draftsOnly: false,
+    transport: "graph",
+  },
   {
     id: "gmail",
     name: "gmail",
@@ -29,6 +66,7 @@ export const DIRECT_APPS: readonly DirectApp[] = [
     ],
     docsUrl: "https://developers.google.com/workspace/gmail/api/guides/configure-mcp-server",
     draftsOnly: true,
+    transport: "mcp",
   },
   {
     id: "slack",
@@ -38,6 +76,7 @@ export const DIRECT_APPS: readonly DirectApp[] = [
     scopes: [],
     docsUrl: "https://docs.slack.dev/ai/slack-mcp-server/",
     draftsOnly: false,
+    transport: "mcp",
   },
 ];
 
@@ -70,12 +109,13 @@ export function directAppCardState(app: DirectApp, servers: readonly DirectAppSe
   return { kind: "ready", enabled: existing.enabled, auth: existing.auth };
 }
 
-/** The POST /api/mcp/servers body for one app. A new server is stored
- * switched off until sign-in succeeds. */
+/** The POST /api/mcp/servers body for a remote MCP app. A new server is
+ * stored switched off until sign-in succeeds. Outlook does not use this. */
 export function directAppCreateBody(
   app: DirectApp,
   input: { clientId: string; clientSecret: string },
-): { ok: true; body: Record<string, unknown> } | { ok: false; error: "client-id" | "client-secret" } {
+): { ok: true; body: Record<string, unknown> } | { ok: false; error: "client-id" | "client-secret" | "not-mcp" } {
+  if (app.transport !== "mcp") return { ok: false, error: "not-mcp" };
   const clientId = input.clientId.trim();
   const clientSecret = input.clientSecret.trim();
   if (!clientId) return { ok: false, error: "client-id" };
