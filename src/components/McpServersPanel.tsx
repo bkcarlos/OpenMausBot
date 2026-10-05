@@ -22,7 +22,9 @@ import type { LocaleKey } from "@/locales";
 import { updateMcpServers } from "@/lib/mcp-servers";
 import { completeMcpSignIn, mcpSignInLink, runMcpSignIn, type McpSignInStatus } from "@/lib/mcp-sign-in";
 import { api, useStore, type ConfigStatus } from "@/state/store";
+import { directAppByName, directAppCreateBody, type DirectApp } from "../../shared/direct-apps.ts";
 
+import { DirectAppsSection } from "./DirectAppsSection";
 import { Switch } from "./SettingsPrimitives";
 
 /** A server this computer starts (a command) or one reached at a URL —
@@ -396,7 +398,19 @@ export function McpServersPanel({ embedded = false }: { embedded?: boolean } = {
         setSignInFlow(status);
         signInComplete.current = complete;
       } });
-      if (result.phase === "succeeded") setNotice({ key: "mcp.auth.done", params: { name: server.name } });
+      if (result.phase === "succeeded") {
+        const app = directAppByName(server.name);
+        const matched = app && isRemoteMcpListing(server) && server.url === app.url ? app : null;
+        if (matched && !server.enabled) {
+          const enabled = await api(`/api/mcp/servers/${encodeURIComponent(server.name)}`, {
+            method: "PATCH",
+            body: JSON.stringify({ enabled: true }),
+          });
+          setServers(enabled.servers ?? []);
+          updateMcpServers(enabled.servers ?? []);
+        }
+        setNotice({ key: matched ? "directApps.signedIn" : "mcp.auth.done", params: { name: matched ? matched.title : server.name } });
+      }
       else if (result.phase !== "cancelled") {
         setProbe((current) => ({ ...current, [server.name]: { ok: false, error: result.message || t("mcp.auth.failed") } }));
       }
@@ -428,6 +442,39 @@ export function McpServersPanel({ embedded = false }: { embedded?: boolean } = {
       if (signInAbort.current === controller) setCallbackError(cause instanceof Error ? cause.message : String(cause));
     } finally {
       if (signInAbort.current === controller) setCompletingSignIn(false);
+    }
+  };
+
+  const authorizeDirect = async (app: DirectApp, input: { clientId: string; clientSecret: string }) => {
+    const prepared = directAppCreateBody(app, input);
+    if (!prepared.ok) {
+      setError({ key: prepared.error === "client-id" ? "directApps.missingId" : "directApps.missingSecret" });
+      return;
+    }
+    const existing = servers?.find((server) => server.name === app.name);
+    if (existing) {
+      if (!isRemoteMcpListing(existing) || existing.url !== app.url) {
+        setError({ key: "directApps.nameTaken", params: { name: app.name } });
+        return;
+      }
+      await signIn(existing);
+      return;
+    }
+    setBusy(`direct:${app.name}`);
+    loadGeneration.current += 1;
+    setError(null);
+    setNotice(null);
+    try {
+      const result = await api("/api/mcp/servers", { method: "POST", body: JSON.stringify(prepared.body) });
+      const next = (result.servers ?? []) as McpServerListing[];
+      setServers(next);
+      updateMcpServers(next);
+      const created = next.find((server) => server.name === app.name);
+      setBusy(null);
+      if (created) await signIn(created);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : String(cause));
+      setBusy(null);
     }
   };
 
@@ -570,6 +617,23 @@ export function McpServersPanel({ embedded = false }: { embedded?: boolean } = {
             </div>
           </div>
         )}
+
+        <DirectAppsSection
+          servers={(servers ?? []).map((server) => ({
+            name: server.name,
+            url: isRemoteMcpListing(server) ? server.url : undefined,
+            enabled: server.enabled,
+            auth: isRemoteMcpListing(server) ? server.auth : undefined,
+          }))}
+          restricted={restricted}
+          busy={busy !== null}
+          signingIn={signingIn}
+          onAuthorize={authorizeDirect}
+          onSignIn={(name) => {
+            const server = servers?.find((candidate) => candidate.name === name);
+            if (server) void signIn(server);
+          }}
+        />
 
         <div className="mt-4 rounded-xl border border-hairline/50 bg-raised/35 px-4 py-3 text-[12px] leading-relaxed text-ink-secondary">
           {t("mcp.trustNotice")}
