@@ -167,8 +167,9 @@ struct ChatListView: View {
             }
 #endif
             // iOS-on-Mac builds each sheet in a new hosting controller that does
-            // not inherit @EnvironmentObject. A List or Form that then reads
-            // Session traps in EnvironmentObject.error() inside SheetBridge.present.
+            // not inherit @EnvironmentObject. A List, Form, or ScrollView that
+            // then reads Session traps in EnvironmentObject.error() inside
+            // SheetBridge.present. The Updates pill is the ScrollView case.
             .sheet(isPresented: $showingCalendar) {
                 RoutineCalendarView()
                     .environmentObject(session)

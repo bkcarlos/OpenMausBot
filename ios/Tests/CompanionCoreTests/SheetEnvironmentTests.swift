@@ -2,10 +2,11 @@ import Foundation
 import XCTest
 
 /// Opening a sheet on iOS-on-Mac builds a new hosting controller. That
-/// controller does not inherit `@EnvironmentObject`, so a `List` or `Form`
-/// that reads `Session` traps in `EnvironmentObject.error()` while the sheet
-/// is presented (`SheetBridge.present`). Every sheet or cover whose content
-/// reads one has to receive it on the presented view.
+/// controller does not inherit `@EnvironmentObject`, so a `List`, `Form`, or
+/// `ScrollView` that reads `Session` traps in `EnvironmentObject.error()`
+/// while the sheet is presented (`SheetBridge.present`). The Updates sheet
+/// is that `ScrollView`. Every sheet or cover whose content reads one has
+/// to receive it on the presented view.
 final class SheetEnvironmentTests: XCTestCase {
     func testSheetRootsReceiveTheEnvironmentObjectsTheyRead() throws {
         let app = URL(fileURLWithPath: #filePath)
