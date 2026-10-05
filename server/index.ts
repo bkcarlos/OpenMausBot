@@ -206,6 +206,7 @@ import {
   type ModelSelection,
   type RequestOutcome,
   type RuntimeEvent,
+  type McpServerSpec,
   type SendTurnInput,
   type SteerOutcome,
   newId,
@@ -222,6 +223,7 @@ import {
 } from "./mcp-registry.ts";
 import { attachCustomMcp } from "./mcp-result-budget.ts";
 import { MCP_OAUTH_CALLBACK_PATH, McpOAuthManager, mcpOAuthRedirectUri, withMcpSignIn, withoutPendingSignIn } from "./mcp-oauth.ts";
+import { OutlookMail, mountOutlookMail } from "./outlook-mail.ts";
 import {
   GROUP_GOAL_MAX_TURNS,
   groupGoalAssignmentKey,
@@ -1584,6 +1586,11 @@ const mcpOAuth = new McpOAuthManager({
     const parsed = raw === undefined ? null : parseStoredMcpServer(name, raw);
     return parsed?.ok && isRemoteMcpServer(parsed.server) && parsed.server.url === url ? parsed.server.oauth : undefined;
   },
+});
+/** Outlook mailbox grant. The Graph token stays in its own file; turns receive a loopback gate. */
+const outlookMail = new OutlookMail({
+  file: join(DATA_DIR, "outlook-oauth.json"),
+  isOwnerLive: (owner) => owner === "loopback" || sessions.isLive(owner),
 });
 // OpenCode reads provider keys (ANTHROPIC_API_KEY, OPENAI_API_KEY, …) from its environment. Wired before the first catalog probe below.
 let openCodeOrganisationManaged = (): boolean => false;
@@ -3251,7 +3258,7 @@ function previewSystemPrompt(bot: BotRecord) {
     { id: "cloud-home", label: "My Cloud", text: CLOUD_HOME ? cloudHomePrompt(agentsMounted && lendingEnabled(), syncedFolders(DATA_DIR), sharedComputers.known(CLOUD_HOME_LENDER)) : "" },
     { id: "composio", label: "Connected apps", text: caps?.composioMcp && bot.composio !== false && composio.configured(cfg) ? composioSystemPrompt(bot.connectorTools) + describeConnectorScopes(bot.connectorScopes) : "" },
     { id: "highlevel", label: "HighLevel", text: caps?.highlevelMcp === true && highlevelHost.mounts(bot) ? highlevelHost.prompt(bot) : "" },
-    { id: "mcp", label: "MCP servers", text: caps?.customMcp ? customMcpPrompt(Object.keys(engineMcpServers(bot))) : "" }, { id: "to-connect", label: "Connections to make", text: cloudConnections.prompt(bot) },
+    { id: "mcp", label: "MCP servers", text: caps?.customMcp ? customMcpPrompt(Object.keys(mountedCustomMcp(engineMcpServers(bot)))) : "" }, { id: "to-connect", label: "Connections to make", text: cloudConnections.prompt(bot) },
     { id: "browser", label: "Browser", text: previewPlan.browser ? browserPromptFor(bot, agentsMounted) : "" },
     { id: "coordination", label: "Team", text: agentsMounted && coordination ? ` ${coordination}` : "" },
     { id: "credential", label: "Credentials", text: agentsMounted ? CREDENTIAL_PROMPT : "" },
@@ -8493,7 +8500,7 @@ async function startTurn(
       }
       // User MCP servers' tools are never pre-allowed: every call rides the normal permission flow.
       if (instance.adapter.capabilities.customMcp === true) {
-        attachCustomMcp(integrations, await withMcpSignIn(engineMcpServers(bot), mcpOAuth), cfg);
+        attachCustomMcp(integrations, mountedCustomMcp(await withMcpSignIn(engineMcpServers(bot), mcpOAuth)), cfg);
       }
       const worksInWorkspace = supportsWorkspaceFiles(instance.driverKind);
       if (worksInWorkspace) {
@@ -10418,7 +10425,7 @@ async function runClaimedGroupMemberTurn(
     return true;
   }
   if (instance.adapter.capabilities.customMcp === true) {
-    attachCustomMcp(integrations, await withMcpSignIn(engineMcpServers(bot), mcpOAuth), cfg);
+    attachCustomMcp(integrations, mountedCustomMcp(await withMcpSignIn(engineMcpServers(bot), mcpOAuth)), cfg);
   }
   // An interrupt during connected-app setup must still stop the queued room operation before it starts a process.
   if (isCancelled?.()) return false;
@@ -12915,6 +12922,15 @@ function engineMcpServers(bot: BotRecord) {
   return withoutPendingSignIn(managedPolicy.filterMcp(customMcpServers(cfg, bot.mcpServers)), mcpOAuth);
 }
 
+/** User MCP servers plus the direct Outlook mailbox, when one is signed in.
+ * A server the person already named outlook is left as they configured it. */
+function mountedCustomMcp(servers: Record<string, McpServerSpec>): Record<string, McpServerSpec> {
+  return mountOutlookMail(servers, outlookMail.engineSpec(PORT), {
+    restricted: managedPolicy.restrictsMcp(),
+    userNamedOutlook: Object.hasOwn(cfg.mcpServers ?? {}, "outlook"),
+  });
+}
+
 function persistMcpServers(next: Record<string, unknown>): void {
   saveConfig({ mcpServers: next });
   cfg.mcpServers = next;
@@ -13484,6 +13500,33 @@ ROUTES.push(createMcpServerRoutes({
   mcpConfigBusy: { get: () => mcpConfigBusy, set: (busy) => { mcpConfigBusy = busy; } },
   mcpServerResponse, mcpPolicyRefusal, persistMcpServers, savedCustomDomain,
 }));
+ROUTES.push(async ({ req, res, path, method, auth, json, readBody }) => {
+  if (path !== "/api/outlook" && !path.startsWith("/api/outlook/sign-in") && path !== "/api/outlook/sign-out") return PASS;
+  res.setHeader("Cache-Control", "no-store");
+  if ((method === "POST" || method === "PUT") && !String(req.headers["content-type"] ?? "").toLowerCase().startsWith("application/json")) {
+    return json(res, 415, { error: "content-type must be application/json" });
+  }
+  const owner = auth.kind === "session" ? auth.session.id : "loopback";
+  try {
+    const body = method === "POST" || method === "PUT" ? await readBody(req, 20_480) : undefined;
+    const outcome = await outlookMail.route({
+      method,
+      path,
+      owner,
+      body,
+      restricted: managedPolicy.restrictsMcp(),
+    });
+    if (!outcome) return json(res, 404, { error: "not found" });
+    if (outcome.status === 200 && method === "POST" && path === "/api/outlook/sign-in" && auth.kind === "session" && !sessions.isLive(owner)) {
+      outlookMail.cancel(owner);
+      return json(res, 401, { error: "Your session ended. Start a new sign-in." });
+    }
+    return json(res, outcome.status, outcome.body);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Outlook sign-in could not start.";
+    return json(res, 400, { error: message });
+  }
+});
 ROUTES.push(createSetupImportRoutes({ local: DESKTOP_MANAGED && !CLOUD_HOME && !HOSTED_WORKSPACE, cfg, mcpPolicyRefusal, persistMcpServers,
   mcpConfigBusy: { get: () => mcpConfigBusy, set: (busy) => { mcpConfigBusy = busy; } } }));
 ROUTES.push(createComputerRoutes({
@@ -13813,6 +13856,13 @@ const handleRequest = async (req: IncomingMessage, res: ServerResponse) => {
     // Public: the sign-in page needs the deployment's name and icon, and it holds nothing secret.
     if (method === "GET" && path === "/api/brand" && !gate.auth) {
       return json(res, 200, loadBrand());
+    }
+    // The engine calls this loopback MCP with a process-local gate. A
+    // missing gate is indistinguishable from an unknown route.
+    if (path === "/api/outlook/mcp") {
+      if (!outlookMail.allowsMcp(req)) return json(res, 404, { error: "not found" });
+      await outlookMail.handleMcp(req, res);
+      return;
     }
     if (!gate.auth) return json(res, gate.status, { error: gate.error });
     if (cloudPower && gate.auth.kind === "session") cloudPower.request(path, req.headers, res); // someone using a Cloud home keeps it awake

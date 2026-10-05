@@ -13,13 +13,14 @@ import {
 } from "../../shared/direct-apps.ts";
 
 const DETAIL: Record<DirectApp["id"], LocaleKey> = {
+  outlook: "directApps.outlook.detail",
   gmail: "directApps.gmail.detail",
   slack: "directApps.slack.detail",
 };
 
-/** Gmail and Slack, each with its own provider sign-in. Tokens stay in the
- * MCP sign-in store; this section only collects the OAuth app the person
- * registered with that provider. */
+/** Outlook, Gmail, and Slack, each with its own provider sign-in. This
+ * section collects the OAuth app the person registered. Tokens stay on
+ * this computer. */
 export function DirectAppsSection({
   servers,
   restricted,
@@ -27,19 +28,21 @@ export function DirectAppsSection({
   signingIn,
   onAuthorize,
   onSignIn,
+  onSignOut,
 }: {
   servers: readonly DirectAppServer[];
   restricted: boolean;
   busy: boolean;
   signingIn: string | null;
-  onAuthorize: (app: DirectApp, input: { clientId: string; clientSecret: string }) => Promise<void>;
+  onAuthorize: (app: DirectApp, input: { clientId: string; clientSecret: string; tenant?: string }) => Promise<void>;
   onSignIn: (name: string) => void;
+  onSignOut?: (app: DirectApp) => void;
 }) {
-  const [creds, setCreds] = useState<Record<string, { clientId: string; clientSecret: string }>>({});
-  const field = (id: string) => creds[id] ?? { clientId: "", clientSecret: "" };
-  const setField = (id: string, key: "clientId" | "clientSecret", value: string) => {
+  const [creds, setCreds] = useState<Record<string, { clientId: string; clientSecret: string; tenant: string }>>({});
+  const field = (id: string) => creds[id] ?? { clientId: "", clientSecret: "", tenant: "" };
+  const setField = (id: string, key: "clientId" | "clientSecret" | "tenant", value: string) => {
     setCreds((current) => {
-      const previous = current[id] ?? { clientId: "", clientSecret: "" };
+      const previous = current[id] ?? { clientId: "", clientSecret: "", tenant: "" };
       return { ...current, [id]: { ...previous, [key]: value } };
     });
   };
@@ -74,9 +77,21 @@ export function DirectAppsSection({
                 <p role="status" className="mt-2 text-[12px] text-warning">{t("directApps.nameTaken", { name: app.name })}</p>
               )}
               {card.kind === "ready" && card.auth === "signed-in" && (
-                <p role="status" className="mt-2 text-[12px] text-success">
-                  {t(card.enabled ? "directApps.signedIn" : "directApps.savedOff", { name: app.title })}
-                </p>
+                <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
+                  <p role="status" className="text-[12px] text-success">
+                    {t(card.enabled ? "directApps.signedIn" : "directApps.savedOff", { name: app.title })}
+                  </p>
+                  {app.transport === "graph" && onSignOut && (
+                    <button
+                      type="button"
+                      disabled={pending}
+                      onClick={() => onSignOut(app)}
+                      className="rounded-lg px-2 py-1 text-[12px] text-ink-secondary hover:text-ink disabled:opacity-40"
+                    >
+                      {t("directApps.signOut", { name: app.title })}
+                    </button>
+                  )}
+                </div>
               )}
               {card.kind === "ready" && card.auth !== "signed-in" && (
                 <button
@@ -113,6 +128,20 @@ export function DirectAppsSection({
                       className="mt-1.5 w-full rounded-lg border border-hairline/60 bg-card px-3 py-2 font-mono text-[12px] text-ink outline-none focus:border-accent disabled:opacity-40"
                     />
                   </label>
+                  {app.transport === "graph" && (
+                    <label className="block sm:col-span-2">
+                      <span className="text-[12px] font-medium text-ink-secondary">{t("directApps.tenant")}</span>
+                      <input
+                        value={values.tenant}
+                        disabled={restricted}
+                        spellCheck={false}
+                        autoComplete="off"
+                        placeholder="common"
+                        onChange={(event) => setField(app.id, "tenant", event.target.value)}
+                        className="mt-1.5 w-full rounded-lg border border-hairline/60 bg-card px-3 py-2 font-mono text-[12px] text-ink outline-none focus:border-accent disabled:opacity-40"
+                      />
+                    </label>
+                  )}
                   <div className="sm:col-span-2">
                     <button
                       type="button"
