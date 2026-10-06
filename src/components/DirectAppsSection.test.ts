@@ -20,8 +20,10 @@ describe("direct app cards", () => {
     expect(html.indexOf(outlook.title)).toBeLessThan(html.indexOf(gmail.title));
     expect(html.indexOf(gmail.title)).toBeLessThan(html.indexOf("Slack"));
     expect(html).toContain(directAppRedirectUri(outlook));
-    expect(html).toContain(directAppRedirectUri(gmail));
+    // A name already used elsewhere has no setup form, so it does not offer a redirect.
+    expect(html).not.toContain(directAppRedirectUri(gmail));
     expect(html).toContain(directAppRedirectUri(directAppByName("slack")!));
+    expect(html).toContain("Set up Outlook");
     expect(html).toContain("Composio does not receive it");
     expect(html).toContain("Mail.Send");
     expect(html).toContain("Calendar, files, and Teams are not included");

@@ -36,12 +36,16 @@ beforeEach(() => {
 afterEach(() => vi.unstubAllGlobals());
 
 describe("sidebar footer places", () => {
-  it.each(["comfortable", "compact"] as const)("shows Routines, Triggers and Apps as direct rows (%s)", (density) => {
+  it.each(["comfortable", "compact"] as const)("shows Schedules and Mail and apps in Simple mode (%s)", (density) => {
     const { html } = render(density);
-    const order = ["routines", "triggers", "apps"].map((id) => html.indexOf(`data-sidebar-nav="${id}"`));
+    const order = ["routines", "apps"].map((id) => html.indexOf(`data-sidebar-nav="${id}"`));
     expect(order.every((index) => index >= 0)).toBe(true);
     expect(order).toEqual([...order].sort((a, b) => a - b));
-    for (const label of ["Routines", "Triggers", "Apps"]) expect(html).toContain(`>${label}</span>`);
+    expect(html).not.toContain('data-sidebar-nav="triggers"');
+    for (const label of ["Schedules", "Mail and apps"]) expect(html).toContain(`>${label}</span>`);
+    expect(html).not.toContain(">When it happens</span>");
+    expect(html).toContain("The bot does it at a time you choose");
+    expect(html).toContain("Outlook, Gmail, and more");
     // the hover Tools menu is gone in Simple mode
     expect(html).not.toContain("Team map");
   });
@@ -51,10 +55,17 @@ describe("sidebar footer places", () => {
     const row = (id: string) => tree.find((node) => node.props.id === id && typeof node.props.onClick === "function")!;
     (row("routines").props.onClick as () => void)();
     expect(fixture.dispatch).toHaveBeenLastCalledWith({ type: "showRoutines" });
-    (row("triggers").props.onClick as () => void)();
-    expect(fixture.dispatch).toHaveBeenLastCalledWith({ type: "toggleTriggers", open: true });
     (row("apps").props.onClick as () => void)();
     expect(fixture.dispatch).toHaveBeenLastCalledWith({ type: "togglePlugins", open: true });
+    expect(tree.some((node) => node.props.id === "triggers")).toBe(false);
+  });
+
+  it("keeps When it happens in Advanced mode", () => {
+    fixture.advanced = true;
+    const { nodes: tree } = render("comfortable");
+    const row = tree.find((node) => node.props.id === "triggers" && typeof node.props.onClick === "function")!;
+    (row.props.onClick as () => void)();
+    expect(fixture.dispatch).toHaveBeenLastCalledWith({ type: "toggleTriggers", open: true });
   });
 
   it("keeps the guided tour's anchors on the new rows", () => {
@@ -68,7 +79,7 @@ describe("sidebar footer places", () => {
     fixture.state.routineRuns = [{ id: "r", status: "failed", scheduledFor: 1 }];
     const { html } = render("comfortable");
     expect(html.indexOf('data-testid="routines-attention"')).toBeGreaterThan(html.indexOf('data-sidebar-nav="routines"'));
-    expect(html.indexOf('data-testid="routines-attention"')).toBeLessThan(html.indexOf('data-sidebar-nav="triggers"'));
+    expect(html.indexOf('data-testid="routines-attention"')).toBeLessThan(html.indexOf('data-sidebar-nav="apps"'));
   });
 
   it("shows Team map as its own row in Advanced mode, with no Tools menu", () => {
@@ -84,8 +95,11 @@ describe("sidebar footer places", () => {
   it("draws icons with tooltips in the avatars-only density", () => {
     fixture.advanced = true;
     const { html } = render("icons");
-    for (const label of ["Routines", "Triggers", "Apps", "Team map"]) {
-      expect(html).toContain(`aria-label="${label}" title="${label}"`);
+    expect(html).toContain('aria-label="Schedules. The bot does it at a time you choose" title="Schedules. The bot does it at a time you choose"');
+    expect(html).toContain('aria-label="When it happens. Starts a chat from another app" title="When it happens. Starts a chat from another app"');
+    expect(html).toContain('aria-label="Mail and apps. Outlook, Gmail, and more" title="Mail and apps. Outlook, Gmail, and more"');
+    expect(html).toContain('aria-label="Team map" title="Team map"');
+    for (const label of ["Schedules", "When it happens", "Mail and apps", "Team map"]) {
       expect(html).not.toContain(`>${label}</span>`);
     }
   });

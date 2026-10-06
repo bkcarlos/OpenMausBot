@@ -127,7 +127,7 @@ describe("Routines header", () => {
   it("shows the title, date navigation, view switch, run logs and New routine", () => {
     const tree = page();
     const header = buttons(tree);
-    expect(tree.some((node) => node.type === "h1" && textOf(node.props.children) === "Routines")).toBe(true);
+    expect(tree.some((node) => node.type === "h1" && textOf(node.props.children) === "Schedules")).toBe(true);
     for (const label of ["Previous dates", "Next dates", "Today", "Day", "Week", "List", "Run logs", "New routine"]) {
       expect(header.has(label), label).toBe(true);
     }
