@@ -115,6 +115,15 @@ export const SIMPLE_PAGES: SimpleSettingsPage[] = [
   { id: "account", labelKey: "settings.group.account", icon: CircleUser, sections: ["cloudAccount", "organization", "people", "activity"] },
 ];
 
+/** One sentence at the top of a Simple page, saying what the page is for. */
+const SIMPLE_PAGE_LEADS: Partial<Record<string, LocaleKey>> = {
+  general: "settings.page.general.lead",
+  appearance: "settings.page.appearance.lead",
+  ai: "settings.page.ai.lead",
+  computers: "settings.page.computers.lead",
+  account: "settings.page.account.lead",
+};
+
 /** Advanced-only pages. A deep link to one still opens it in Simple mode, as
  * a page of its own for as long as it is the open one. */
 export const SIMPLE_HIDDEN_SECTIONS: readonly AppSettingsSection[] = ["usage", "backups", "experimental", "workspaces", "skills"];
@@ -1200,6 +1209,9 @@ export function SettingsModal() {
 
           <div ref={scrollRef} className="flex flex-1 flex-col gap-4 overflow-y-auto px-3 py-4 sm:px-5 sm:pb-5">
             <LicenseExpiryBanner config={state.config} />
+            {!advanced && currentPage && SIMPLE_PAGE_LEADS[currentPage.id] && (
+              <p className="px-1 text-[13px] leading-relaxed text-ink-secondary">{t(SIMPLE_PAGE_LEADS[currentPage.id]!)}</p>
+            )}
             {advanced ? (
               renderSection(section)
             ) : currentPage ? (

@@ -95,8 +95,8 @@ afterEach(() => {
 describe("Triggers pop-up", () => {
   it("reads as a sentence on glass: When [source] → [bot] should", () => {
     const { html } = render();
-    expect(html).toContain(">Triggers</h2>");
-    expect(html).toContain("Start a task the moment something happens, without asking.");
+    expect(html).toContain(">When it happens</h2>");
+    expect(html).toContain("When something happens in another app, a bot starts the job you wrote.");
     expect(html).toContain("glass-surface");
     expect(html).toContain(">When</span>");
     expect(html).toContain(">should</span>");

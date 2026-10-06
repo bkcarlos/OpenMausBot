@@ -1992,7 +1992,10 @@ export function RoutinesPage({ onBack, onOpenRoom }: { onBack: () => void; onOpe
           >
             <ArrowLeft size={18} />
           </button>
-          <h1 data-tour="automations-page" className="mr-1 text-[18px] font-semibold tracking-tight text-ink">{t("routines.title")}</h1>
+          <div className="mr-1 min-w-0">
+            <h1 data-tour="automations-page" className="text-[18px] font-semibold tracking-tight text-ink">{t("routines.title")}</h1>
+            <p className="truncate text-[12px] font-normal text-ink-secondary">{t("routines.lead")}</p>
+          </div>
           {datedView && (
             <div className="flex min-w-0 items-center gap-1" style={windowNoDragStyle}>
               <button type="button" onClick={() => setAnchor((current) => addDays(current, -viewDays))} className="rounded-md p-1.5 text-ink-secondary hover:bg-raised hover:text-ink" aria-label={t("routines.previous")}><ChevronLeft size={16} /></button>

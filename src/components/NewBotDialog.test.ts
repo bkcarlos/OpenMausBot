@@ -2,8 +2,9 @@ import { Children, createElement, isValidElement, type EffectCallback, type Reac
 import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-const fixture = vi.hoisted(() => ({ effects: [] as EffectCallback[], dispatch: vi.fn(), api: vi.fn(), create: vi.fn(), ready: false, hook: 0, admin: false }));
+const fixture = vi.hoisted(() => ({ effects: [] as EffectCallback[], dispatch: vi.fn(), api: vi.fn(), create: vi.fn(), ready: false, hook: 0, admin: false, advanced: false }));
 vi.mock("@/lib/use-owner-or-admin", () => ({ useOwnerOrAdmin: () => fixture.admin }));
+vi.mock("@/lib/interface-mode", () => ({ useAdvancedMode: () => fixture.advanced }));
 vi.mock("./DesktopCapabilities", () => ({ useDesktopCapabilities: () => ({ capabilities: {} }) }));
 vi.mock("react", async importOriginal => {
   const react = await importOriginal<typeof import("react")>();
@@ -40,7 +41,7 @@ function render(defaultsMode = false, onCreated?: () => void | Promise<void>) {
 }
 beforeEach(() => {
   fixture.effects = []; fixture.dispatch.mockReset(); fixture.api.mockReset();
-  fixture.ready = false; fixture.admin = false; fixture.create.mockReset();
+  fixture.ready = false; fixture.admin = false; fixture.advanced = false; fixture.create.mockReset();
   fixture.api.mockReturnValue(new Promise(() => {}));
 });
 afterEach(() => vi.unstubAllGlobals());
@@ -98,11 +99,16 @@ describe("bot draft dialog", () => {
     expect(fixture.dispatch).toHaveBeenCalledWith({ type: "newBot", onCreated: expect.any(Function) });
     expect(fixture.api).not.toHaveBeenCalled();
   });
-  it("opens immediately with all sections and no creation request", () => {
+  it("opens on a short form, with every section still there in Advanced mode", () => {
     const result = render();
     expect(result.html).toContain('role="dialog"');
+    expect(result.html).toContain("Give it a name and a job. You can change the rest later.");
+    expect(result.html).toContain("More settings");
+    expect(result.html).not.toContain(">Soul<");
+    fixture.advanced = true;
+    const advanced = render();
     for (const section of ["Identity", "Soul", "Skills", "Memory", "Routines", "Access", "Model", "Permissions", "Voice &amp; alerts"]) {
-      expect(result.html).toContain(section);
+      expect(advanced.html).toContain(section);
     }
     fixture.effects[0]();
     expect(fixture.api).toHaveBeenCalledExactlyOnceWith("/api/bot-defaults");
@@ -122,6 +128,7 @@ describe("bot draft dialog", () => {
     const result = render(true);
     expect(result.html).toContain("Defaults for new bots");
     expect(result.html).toContain("Save defaults");
+    expect(result.html).toContain(">Soul<");
     expect(result.html).not.toContain(">Create bot<");
   });
 });

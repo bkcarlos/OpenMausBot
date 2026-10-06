@@ -22,8 +22,8 @@ describe("Settings → Decision model", () => {
   it("is a sidebar item of its own, not a row under Connections", async () => {
     const { SettingsModal } = await import("./SettingsModal");
     const html = renderToStaticMarkup(createElement(StoreProvider, null, createElement(SettingsModal)));
-    expect(html).toContain('<option value="decisionModel">Decision model</option>');
-    expect(html).toMatch(/<button[^>]*>(?:<svg[\s\S]*?<\/svg>)?Decision model<\/button>/);
+    expect(html).toContain('<option value="decisionModel">Who answers</option>');
+    expect(html).toMatch(/<button[^>]*>(?:<svg[\s\S]*?<\/svg>)?Who answers<\/button>/);
   });
 
   it("matches searches for decision, jev, typesafe, routing and auto", async () => {

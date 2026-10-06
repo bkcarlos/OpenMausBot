@@ -616,7 +616,7 @@ export function PluginsPanel() {
     .sort((a, b) => Number(isConnected(b.card.slug)) - Number(isConnected(a.card.slug)) || a.index - b.index)
     .map(({ card }) => card);
   // The full catalog runs past a thousand apps. Without a search, show the
-  // first screenful so the MCP section below stays a short scroll away.
+  // first screenful. Mail sign-in is above this grid.
   const capped = filter === "all" && !search && !showAllApps && visible.length > APPS_PREVIEW_COUNT;
   const shown = capped ? visible.slice(0, APPS_PREVIEW_COUNT) : visible;
   const connectedCount = Object.values(status).filter((service) => service.connected || service.accounts?.length).length;
@@ -725,6 +725,11 @@ export function PluginsPanel() {
         </header>
 
         <div className="min-h-0 flex-1 overflow-y-auto px-6 pb-7 pt-2 sm:px-8">
+          {filter !== "connected" && (
+            <div className={cn(filter === "all" && "mb-6", filter === "mcp" && "pt-1")}>
+              <McpServersPanel embedded mailFirst={filter === "all"} />
+            </div>
+          )}
           {stale && (
             // Say which of the two things is true. Silence here is what makes a
             // remembered list indistinguishable from a confirmed one.
@@ -764,7 +769,7 @@ export function PluginsPanel() {
                   "font-medium underline underline-offset-2",
                   setupNotice.tone === "info" && "text-ink",
                 )}
-                onClick={() => chooseFilter("mcp")}
+                onClick={() => document.getElementById("direct-apps-title")?.scrollIntoView({ block: "start" })}
               >
                 {t("connectors.setupDirect")}
               </button>
@@ -873,11 +878,6 @@ export function PluginsPanel() {
             </section>
           )}
 
-          {filter !== "connected" && (
-            <div className={cn(filter === "all" && "mt-8 border-t border-hairline/30 pt-6", filter === "mcp" && "pt-3")}>
-              <McpServersPanel embedded />
-            </div>
-          )}
         </div>
       </div>
     </div>

@@ -54,6 +54,7 @@ import { macCuaPermissionMessage, missingMacCuaPermissions } from "@/lib/mac-cua
 import { failedTurnCause, signedOutEngine } from "@/lib/failed-turn";
 import { isProviderSafetyBlock, PROVIDER_SAFETY_GUIDANCE, PROVIDER_SAFETY_HELP_URL } from "../../shared/provider-safety";
 import { BotAvatar } from "./Avatar";
+import { EmptyConversation } from "./EmptyConversation";
 import { TurnPresence } from "./TurnPresence";
 import { showToolCallsEnabled, skillAuthoringEnabled } from "@/lib/feature-flags";
 import { normalizeState, stateForBot } from "@/lib/mascot";
@@ -763,32 +764,6 @@ function RoutineRunRow({ message, botId }: { message: Message; botId: string }) 
 }
 
 /** A conversation with nothing in it yet: who it is with, and a prompt. */
-function EmptyChat({ bot }: { bot: Bot }) {
-  const { dispatch } = useStore();
-  return (
-    <div className="flex flex-1 flex-col items-center justify-center gap-3 py-24 text-center">
-      <BotAvatar bot={bot} state="idle" size={64} motion="none" motionKey={0} />
-      <RenameTitle
-        value={bot.name}
-        onCommit={(name) => {
-          if (window.ogb?.remoteClient?.active) {
-            void api(`/api/bots/${bot.id}/profile`, { method: "PATCH", body: JSON.stringify({ name }) })
-              .then(({ bot: updated }) => dispatch({ type: "botPatched", bot: updated }))
-              .catch((cause) => dispatch({ type: "error", message: cause instanceof Error ? cause.message : String(cause) }));
-          } else {
-            dispatch({ type: "updateBot", botId: bot.id, patch: { name } });
-          }
-        }}
-        className="text-[17px] font-semibold text-ink"
-        inputClassName="rounded bg-inset px-1.5 py-0.5 text-center text-[17px] font-semibold"
-      />
-      <div className="max-w-[360px] text-[14px] text-ink-secondary">
-        {bot.description || t("chat.emptyPrompt")}
-      </div>
-    </div>
-  );
-}
-
 /** The settled transcript, memoized as one unit: it renders when any
  * message on the branch or the chat's ChatRows change. Each row inside is
  * memoized on its own message, so a patched tool chip renders that chip and
@@ -1415,7 +1390,7 @@ export function ChatView({ bot: profile }: { bot: Bot }) {
               </button>
             </div>
           ) : null}
-          {windowedMessages.length === 0 && !bot.busy && <EmptyChat bot={bot} />}
+          {windowedMessages.length === 0 && !bot.busy && <EmptyConversation bot={bot} canWrite={canWrite} />}
           <ChatRowsContext.Provider value={rows}>
             <MessagesList
               messages={windowedMessages}

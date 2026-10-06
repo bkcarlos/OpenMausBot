@@ -123,6 +123,7 @@ describe("Settings in Simple mode", () => {
     expect(currentPage(html)).toBe("general");
     expect(html.indexOf('aria-label="Advanced mode"')).toBeGreaterThan(0);
     expect(html.indexOf('aria-label="Advanced mode"')).toBeLessThan(html.indexOf("Language"));
+    expect(html).toContain("Your name, language, and whether this device shows every technical control.");
     expect(blocks(html)).toEqual(["general"]);
   });
 
@@ -132,7 +133,7 @@ describe("Settings in Simple mode", () => {
     expect(currentPage(html)).toBe("ai");
     expect(blocks(html)).toEqual(["engines", "connections", "decisionModel"]);
     const headings = [...html.matchAll(/<h3[^>]*>([^<]+)<\/h3>/g)].map((match) => match[1]);
-    expect(headings).toEqual(["Model providers", "API keys", "Decision model"]);
+    expect(headings).toEqual(["Model providers", "API keys", "Who answers"]);
     expect(markers(html).filter((name) => name === "engines" || name === "decisionModel")).toEqual(["engines", "decisionModel"]);
     expect(html).toContain("More providers for OpenCode bots");
   });

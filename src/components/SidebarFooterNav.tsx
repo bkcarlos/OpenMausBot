@@ -1,8 +1,7 @@
-// The places at the foot of the sidebar, as direct rows: Routines (the
-// Automations page), Triggers and Apps (the two glass pop-ups). They used to
-// hide behind a hover "Tools" menu; three rows cost little and each is one
-// click instead of a hover and a click. Team map is an Advanced-mode place:
-// a fourth row there, no menu.
+// The places at the foot of the sidebar, as direct rows with a one-line
+// hint: Schedules, When it happens, and Mail & apps. They used to hide
+// behind a hover "Tools" menu; three rows cost little and each is one click
+// instead of a hover and a click. Team map is an Advanced-mode place.
 import { CalendarDays, Network, Puzzle, Zap } from "lucide-react";
 import type { ReactNode } from "react";
 
@@ -17,6 +16,7 @@ import { useStore } from "@/state/store";
 function NavRow({
   id,
   label,
+  hint,
   icon,
   active = false,
   attention = false,
@@ -26,6 +26,7 @@ function NavRow({
 }: {
   id: string;
   label: string;
+  hint?: string;
   icon: (active: boolean) => ReactNode;
   active?: boolean;
   attention?: boolean;
@@ -33,23 +34,29 @@ function NavRow({
   tourId?: string;
   onClick: () => void;
 }) {
+  const tip = hint ? `${label}. ${hint}` : label;
   return (
     <button
       type="button"
       data-tour={tourId}
       data-sidebar-nav={id}
       onClick={onClick}
-      aria-label={iconsOnly ? label : undefined}
-      title={iconsOnly ? label : undefined}
+      aria-label={iconsOnly ? tip : undefined}
+      title={iconsOnly ? tip : hint}
       aria-current={active ? "page" : undefined}
       className={cn(
         "relative flex w-full items-center rounded-xl text-left transition-colors",
-        iconsOnly ? "min-h-10 justify-center px-2 py-2" : "min-h-9 gap-3 px-3 py-1.5",
+        iconsOnly ? "min-h-10 justify-center px-2 py-2" : "min-h-11 gap-3 px-3 py-1.5",
         active ? "bg-raised text-ink" : "text-ink hover:bg-raised/50",
       )}
     >
       {icon(active)}
-      {!iconsOnly && <span className="flex-1 truncate text-[14px]">{label}</span>}
+      {!iconsOnly && (
+        <span className="min-w-0 flex-1">
+          <span className="block truncate text-[14px]">{label}</span>
+          {hint && <span className="block truncate text-[11px] text-ink-tertiary">{hint}</span>}
+        </span>
+      )}
       {attention && (
         <span
           data-testid="routines-attention"
@@ -74,6 +81,7 @@ export function SidebarFooterNav({ density }: { density: SidebarDensity }) {
       <NavRow
         id="routines"
         label={t("sidebar.nav.routines")}
+        hint={t("sidebar.nav.routinesHint")}
         tourId="nav-automations"
         iconsOnly={iconsOnly}
         active={state.activeView === "routines"}
@@ -84,6 +92,7 @@ export function SidebarFooterNav({ density }: { density: SidebarDensity }) {
       <NavRow
         id="triggers"
         label={t("sidebar.nav.triggers")}
+        hint={t("sidebar.nav.triggersHint")}
         iconsOnly={iconsOnly}
         active={state.triggersOpen}
         icon={(active) => <Zap size={iconSize} className={tone(active)} />}
@@ -92,6 +101,7 @@ export function SidebarFooterNav({ density }: { density: SidebarDensity }) {
       <NavRow
         id="apps"
         label={t("sidebar.nav.apps")}
+        hint={t("sidebar.nav.appsHint")}
         tourId="nav-apps"
         iconsOnly={iconsOnly}
         active={state.pluginsOpen}

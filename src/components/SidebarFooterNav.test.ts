@@ -36,12 +36,15 @@ beforeEach(() => {
 afterEach(() => vi.unstubAllGlobals());
 
 describe("sidebar footer places", () => {
-  it.each(["comfortable", "compact"] as const)("shows Routines, Triggers and Apps as direct rows (%s)", (density) => {
+  it.each(["comfortable", "compact"] as const)("shows Schedules, When it happens and Mail and apps as direct rows (%s)", (density) => {
     const { html } = render(density);
     const order = ["routines", "triggers", "apps"].map((id) => html.indexOf(`data-sidebar-nav="${id}"`));
     expect(order.every((index) => index >= 0)).toBe(true);
     expect(order).toEqual([...order].sort((a, b) => a - b));
-    for (const label of ["Routines", "Triggers", "Apps"]) expect(html).toContain(`>${label}</span>`);
+    for (const label of ["Schedules", "When it happens", "Mail and apps"]) expect(html).toContain(`>${label}</span>`);
+    expect(html).toContain("Runs at a time you choose");
+    expect(html).toContain("Starts a chat from another app");
+    expect(html).toContain("Outlook, Gmail, and more");
     // the hover Tools menu is gone in Simple mode
     expect(html).not.toContain("Team map");
   });
@@ -84,8 +87,11 @@ describe("sidebar footer places", () => {
   it("draws icons with tooltips in the avatars-only density", () => {
     fixture.advanced = true;
     const { html } = render("icons");
-    for (const label of ["Routines", "Triggers", "Apps", "Team map"]) {
-      expect(html).toContain(`aria-label="${label}" title="${label}"`);
+    expect(html).toContain('aria-label="Schedules. Runs at a time you choose" title="Schedules. Runs at a time you choose"');
+    expect(html).toContain('aria-label="When it happens. Starts a chat from another app" title="When it happens. Starts a chat from another app"');
+    expect(html).toContain('aria-label="Mail and apps. Outlook, Gmail, and more" title="Mail and apps. Outlook, Gmail, and more"');
+    expect(html).toContain('aria-label="Team map" title="Team map"');
+    for (const label of ["Schedules", "When it happens", "Mail and apps", "Team map"]) {
       expect(html).not.toContain(`>${label}</span>`);
     }
   });

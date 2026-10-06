@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import {
   CheckCircle2,
   ClipboardPaste,
@@ -216,8 +216,9 @@ function directAppServers(
 }
 
 /** `embedded`: a section of the Apps pop-up's one scrolling view, rather
- * than a page that owns its own scroll. */
-export function McpServersPanel({ embedded = false }: { embedded?: boolean } = {}) {
+ * than a page that owns its own scroll. `mailFirst` puts Outlook and Gmail
+ * above the custom-tool list, and folds that list away until someone asks. */
+export function McpServersPanel({ embedded = false, mailFirst = false }: { embedded?: boolean; mailFirst?: boolean } = {}) {
   const { state: store } = useStore();
   // While enrolled with custom servers off, only approved servers can be added.
   const policy = store.config?.managedPolicy;
@@ -602,6 +603,31 @@ export function McpServersPanel({ embedded = false }: { embedded?: boolean } = {
       className={embedded ? "" : "min-h-0 flex-1 overflow-y-auto px-6 pb-7 pt-5 sm:px-8"}
     >
       <div className={embedded ? "" : "mx-auto max-w-[840px]"}>
+        <DirectAppsSection
+          servers={directAppServers(servers ?? [], outlookAuth)}
+          restricted={restricted}
+          busy={busy !== null}
+          signingIn={signingIn}
+          onAuthorize={authorizeDirect}
+          onSignIn={(name) => {
+            if (name === "outlook") {
+              void runSignIn(name, { base: OUTLOOK_SIGN_IN_PATH });
+              return;
+            }
+            const server = servers?.find((candidate) => candidate.name === name);
+            if (server) void signIn(server);
+          }}
+          onSignOut={(app) => {
+            if (app.transport !== "graph") return;
+            void api("/api/outlook/sign-out", { method: "POST" })
+              .then((result) => {
+                const auth = result?.auth;
+                if (auth === "none" || auth === "needs-sign-in" || auth === "signed-in") setOutlookAuth(auth);
+              })
+              .catch((cause) => setError(cause instanceof Error ? cause.message : String(cause)));
+          }}
+        />
+        <McpToolsFold collapsed={mailFirst}>
         {/* wraps by the room it has, not the window: inside a pop-up a wide
             window can still leave too little for the intro and the buttons */}
         <div className="flex flex-wrap items-start justify-between gap-3">
@@ -691,31 +717,6 @@ export function McpServersPanel({ embedded = false }: { embedded?: boolean } = {
             </div>
           </div>
         )}
-
-        <DirectAppsSection
-          servers={directAppServers(servers ?? [], outlookAuth)}
-          restricted={restricted}
-          busy={busy !== null}
-          signingIn={signingIn}
-          onAuthorize={authorizeDirect}
-          onSignIn={(name) => {
-            if (name === "outlook") {
-              void runSignIn(name, { base: OUTLOOK_SIGN_IN_PATH });
-              return;
-            }
-            const server = servers?.find((candidate) => candidate.name === name);
-            if (server) void signIn(server);
-          }}
-          onSignOut={(app) => {
-            if (app.transport !== "graph") return;
-            void api("/api/outlook/sign-out", { method: "POST" })
-              .then((result) => {
-                const auth = result?.auth;
-                if (auth === "none" || auth === "needs-sign-in" || auth === "signed-in") setOutlookAuth(auth);
-              })
-              .catch((cause) => setError(cause instanceof Error ? cause.message : String(cause)));
-          }}
-        />
 
         <div className="mt-4 rounded-xl border border-hairline/50 bg-raised/35 px-4 py-3 text-[12px] leading-relaxed text-ink-secondary">
           {t("mcp.trustNotice")}
@@ -1002,8 +1003,21 @@ export function McpServersPanel({ embedded = false }: { embedded?: boolean } = {
             })}
           </div>
         )}
+        </McpToolsFold>
       </div>
     </section>
+  );
+}
+
+/** On the Apps page, custom MCP tools sit behind this fold so mail is the
+ * first thing on the page. A deep link to the tools list leaves it open. */
+function McpToolsFold({ collapsed, children }: { collapsed: boolean; children: ReactNode }) {
+  if (!collapsed) return <>{children}</>;
+  return (
+    <details className="mt-6 rounded-2xl border border-hairline/50 bg-card/40 px-4 py-3">
+      <summary className="cursor-pointer text-[13px] font-medium text-ink">{t("apps.customTools")}</summary>
+      <div className="pt-4">{children}</div>
+    </details>
   );
 }
 
