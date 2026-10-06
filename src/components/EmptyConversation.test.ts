@@ -44,23 +44,29 @@ describe("empty conversation", () => {
       return tree;
     }
     const html = renderToStaticMarkup(createElement(Capture));
-    expect(html).toContain("Start with one of these");
+    expect(html).toContain("Or set something up");
     expect(html).toContain("What can you help me with?");
-    expect(html).toContain("What can you do on this computer?");
-    expect(html).toContain("Help me connect my email");
-    button(tree, "Help me connect my email")!.props.onClick!();
+    expect(html).toContain("Connect Outlook or Gmail");
+    expect(html).toContain("Run something on a schedule");
+    button(tree, "What can you help me with?")!.props.onClick!();
     expect(fixture.dispatch).toHaveBeenCalledWith({
       type: "send",
       botId: "bot-1",
       threadId: "thread-1",
-      text: "Help me connect my email",
+      text: "What can you help me with?",
       sendId: "send-1",
     });
+    button(tree, "Connect Outlook or Gmail")!.props.onClick!();
+    expect(fixture.dispatch).toHaveBeenCalledWith({ type: "togglePlugins", open: true });
+    button(tree, "Run something on a schedule")!.props.onClick!();
+    expect(fixture.dispatch).toHaveBeenCalledWith({ type: "showRoutines" });
   });
 
-  it("hides the starters when this person cannot write in the thread", () => {
+  it("keeps setup actions when this person cannot write in the thread", () => {
     const html = renderToStaticMarkup(createElement(EmptyConversation, { bot, canWrite: false }));
-    expect(html).not.toContain("Help me connect my email");
+    expect(html).not.toContain("What can you help me with?");
+    expect(html).toContain("Connect Outlook or Gmail");
+    expect(html).toContain("Run something on a schedule");
     expect(html).toContain("Send a message to start the conversation.");
   });
 });

@@ -1,22 +1,19 @@
-// An empty thread used to say only "send a message". The first screen now
-// names three ordinary first asks, so a new person does not have to invent
-// a prompt before they learn what the bot can do.
+// An empty thread names the three things a person can actually do: ask,
+// connect mail, or put work on a schedule. Connecting mail opens that
+// screen. It does not send the bot a sentence it cannot finish.
 import { api, useStore, type Bot } from "@/state/store";
 import { t } from "@/lib/i18n";
-import type { LocaleKey } from "@/locales";
 import { BotAvatar } from "./Avatar";
 import { RenameTitle } from "./RenameTitle";
 
-const STARTERS: LocaleKey[] = ["chat.starter.help", "chat.starter.computer", "chat.starter.mail"];
-
 export function EmptyConversation({ bot, canWrite }: { bot: Bot; canWrite: boolean | null }) {
   const { dispatch } = useStore();
-  const ask = (text: string) => {
+  const ask = () => {
     dispatch({
       type: "send",
       botId: bot.id,
       threadId: bot.threadId,
-      text,
+      text: t("chat.starter.help"),
       sendId: crypto.randomUUID(),
     });
   };
@@ -40,21 +37,32 @@ export function EmptyConversation({ bot, canWrite }: { bot: Bot; canWrite: boole
       <div className="max-w-[360px] text-[14px] text-ink-secondary">
         {bot.description || t("chat.emptyPrompt")}
       </div>
-      {canWrite === true && (
-        <div className="mt-2 flex max-w-[420px] flex-col items-stretch gap-2">
-          <div className="text-[12px] text-ink-tertiary">{t("chat.startersLabel")}</div>
-          {STARTERS.map((key) => (
-            <button
-              key={key}
-              type="button"
-              onClick={() => ask(t(key))}
-              className="rounded-full border border-hairline/50 bg-panel px-4 py-2 text-[13px] text-ink hover:bg-raised"
-            >
-              {t(key)}
-            </button>
-          ))}
-        </div>
-      )}
+      <div className="mt-2 flex max-w-[420px] flex-col items-stretch gap-2">
+        <div className="text-[12px] text-ink-tertiary">{t("chat.startersLabel")}</div>
+        {canWrite === true && (
+          <button
+            type="button"
+            onClick={ask}
+            className="rounded-full border border-hairline/50 bg-panel px-4 py-2 text-[13px] text-ink hover:bg-raised"
+          >
+            {t("chat.starter.help")}
+          </button>
+        )}
+        <button
+          type="button"
+          onClick={() => dispatch({ type: "togglePlugins", open: true })}
+          className="rounded-full border border-hairline/50 bg-panel px-4 py-2 text-[13px] text-ink hover:bg-raised"
+        >
+          {t("chat.starter.mail")}
+        </button>
+        <button
+          type="button"
+          onClick={() => dispatch({ type: "showRoutines" })}
+          className="rounded-full border border-hairline/50 bg-panel px-4 py-2 text-[13px] text-ink hover:bg-raised"
+        >
+          {t("chat.starter.schedule")}
+        </button>
+      </div>
     </div>
   );
 }

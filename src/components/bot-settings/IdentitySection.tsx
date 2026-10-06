@@ -26,12 +26,15 @@ export function IdentitySection({
   activeState,
   mascotMotion,
   namePlaceholder,
+  compact = false,
 }: {
   bot: Bot;
   patch: (patch: BotPatch) => void;
   activeState: MausState;
   mascotMotion: { kind: Exclude<MausMotion, "none">; nonce: number } | null;
   namePlaceholder?: string;
+  /** Name and what it does. The blurb and its long note stay in the full editor. */
+  compact?: boolean;
 }) {
   const [instructionsOpen, setInstructionsOpen] = useState(false);
   const { draft } = useBotEditor();
@@ -64,7 +67,7 @@ export function IdentitySection({
           onChange={(e) => patch({ name: e.target.value })}
         />
       </div>
-      <Field label="Title">
+      <Field label={compact ? t("newBot.whatItDoes") : "Title"}>
         <ProposalStatus bot={bot} kind="chief" />
         <input
           className={inputCls}
@@ -74,7 +77,7 @@ export function IdentitySection({
           onChange={(e) => patch({ title: e.target.value })}
         />
       </Field>
-      <div className="block">
+      {!compact && <div className="block">
         <div className="mb-1.5 flex items-center justify-between gap-3">
           <label htmlFor={`bot-instructions-${bot.id}`} className="text-[13px] text-ink-secondary">
             Blurb
@@ -107,7 +110,7 @@ export function IdentitySection({
             </span>
           )}
         </div>
-      </div>
+      </div>}
 
       {instructionsOpen && <BotInstructionsDialog bot={bot} inline={draft} onClose={() => setInstructionsOpen(false)} />}
     </div>

@@ -110,7 +110,7 @@ export type SimpleSettingsPage = {
 export const SIMPLE_PAGES: SimpleSettingsPage[] = [
   { id: "general", labelKey: "settings.section.general", icon: User, sections: ["general"] },
   { id: "appearance", labelKey: "settings.section.appearance", icon: Palette, sections: ["appearance"] },
-  { id: "ai", labelKey: "settings.group.ai", icon: Sparkles, sections: ["engines", "connections", "decisionModel"] },
+  { id: "ai", labelKey: "settings.group.ai", icon: Sparkles, sections: ["engines", "connections"] },
   { id: "computers", labelKey: "settings.group.computers", icon: Monitor, sections: ["companion", "desktopWorkspaces", "computer"] },
   { id: "account", labelKey: "settings.group.account", icon: CircleUser, sections: ["cloudAccount", "organization", "people", "activity"] },
 ];
@@ -126,7 +126,7 @@ const SIMPLE_PAGE_LEADS: Partial<Record<string, LocaleKey>> = {
 
 /** Advanced-only pages. A deep link to one still opens it in Simple mode, as
  * a page of its own for as long as it is the open one. */
-export const SIMPLE_HIDDEN_SECTIONS: readonly AppSettingsSection[] = ["usage", "backups", "experimental", "workspaces", "skills"];
+export const SIMPLE_HIDDEN_SECTIONS: readonly AppSettingsSection[] = ["decisionModel", "usage", "backups", "experimental", "workspaces", "skills"];
 
 /** The Simple pages to draw, given the sections the filters allow and the
  * one that is open. Each page keeps only its allowed sections, in order. */

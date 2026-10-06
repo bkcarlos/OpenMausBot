@@ -1,7 +1,6 @@
-// The places at the foot of the sidebar, as direct rows with a one-line
-// hint: Schedules, When it happens, and Mail & apps. They used to hide
-// behind a hover "Tools" menu; three rows cost little and each is one click
-// instead of a hover and a click. Team map is an Advanced-mode place.
+// Two places in Simple mode: Schedules (the bot acts without a new message)
+// and Mail and apps. "When it happens" is the same idea as a schedule, told
+// from outside the app, so it stays with Advanced, next to the team map.
 import { CalendarDays, Network, Puzzle, Zap } from "lucide-react";
 import type { ReactNode } from "react";
 
@@ -89,15 +88,17 @@ export function SidebarFooterNav({ density }: { density: SidebarDensity }) {
         icon={(active) => <CalendarDays size={iconSize} className={tone(active)} />}
         onClick={() => dispatch({ type: "showRoutines" })}
       />
-      <NavRow
-        id="triggers"
-        label={t("sidebar.nav.triggers")}
-        hint={t("sidebar.nav.triggersHint")}
-        iconsOnly={iconsOnly}
-        active={state.triggersOpen}
-        icon={(active) => <Zap size={iconSize} className={tone(active)} />}
-        onClick={() => dispatch({ type: "toggleTriggers", open: true })}
-      />
+      {advanced && (
+        <NavRow
+          id="triggers"
+          label={t("sidebar.nav.triggers")}
+          hint={t("sidebar.nav.triggersHint")}
+          iconsOnly={iconsOnly}
+          active={state.triggersOpen}
+          icon={(active) => <Zap size={iconSize} className={tone(active)} />}
+          onClick={() => dispatch({ type: "toggleTriggers", open: true })}
+        />
+      )}
       <NavRow
         id="apps"
         label={t("sidebar.nav.apps")}

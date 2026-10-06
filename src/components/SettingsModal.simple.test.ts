@@ -102,7 +102,7 @@ describe("Settings in Simple mode", () => {
     // a flat list: no group headings, no per-section rail entries
     expect(html).not.toContain("data-settings-group=");
     expect(html).not.toContain("data-settings-section=");
-    for (const hidden of ["usage", "backups", "experimental", "workspaces", "skills"]) expect(html).not.toContain(`value="${hidden}"`);
+    for (const hidden of ["usage", "backups", "experimental", "workspaces", "skills", "decisionModel"]) expect(html).not.toContain(`value="${hidden}"`);
     // the narrow-window picker offers the same five pages
     const picker = html.match(/<select aria-label="Settings"[\s\S]*?<\/select>/)![0];
     expect([...picker.matchAll(/<option value="([^"]+)"/g)].map((match) => match[1])).toEqual(["general", "appearance", "ai", "computers", "account"]);
@@ -114,7 +114,7 @@ describe("Settings in Simple mode", () => {
     const hidden = SECTIONS.map((entry) => entry.id).filter((id) => !placed.includes(id));
     // Skills (the shared library, main's new page) is Advanced-only too, so
     // Simple stays at five pages; a deep link still opens it.
-    expect(hidden).toEqual(["skills", "usage", "backups", "workspaces", "experimental"]);
+    expect(hidden).toEqual(["decisionModel", "skills", "usage", "backups", "workspaces", "experimental"]);
     for (const id of hidden) expect(SIMPLE_HIDDEN_SECTIONS).toContain(id);
   });
 
@@ -127,14 +127,15 @@ describe("Settings in Simple mode", () => {
     expect(blocks(html)).toEqual(["general"]);
   });
 
-  it("stacks Model providers, API keys and Decision model on AI, each under its heading", () => {
+  it("stacks Model providers and API keys on AI, and leaves Who answers for Advanced", () => {
     fixture.section = "engines";
     const html = render();
     expect(currentPage(html)).toBe("ai");
-    expect(blocks(html)).toEqual(["engines", "connections", "decisionModel"]);
+    expect(blocks(html)).toEqual(["engines", "connections"]);
     const headings = [...html.matchAll(/<h3[^>]*>([^<]+)<\/h3>/g)].map((match) => match[1]);
-    expect(headings).toEqual(["Model providers", "API keys", "Who answers"]);
-    expect(markers(html).filter((name) => name === "engines" || name === "decisionModel")).toEqual(["engines", "decisionModel"]);
+    expect(headings).toEqual(["Model providers", "API keys"]);
+    expect(html).not.toContain("Who answers");
+    expect(markers(html).filter((name) => name === "engines" || name === "decisionModel")).toEqual(["engines"]);
     expect(html).toContain("More providers for OpenCode bots");
   });
 
@@ -187,7 +188,6 @@ describe("Settings in Simple mode", () => {
     ["appearance", "appearance"],
     ["engines", "ai"],
     ["connections", "ai"],
-    ["decisionModel", "ai"],
     ["companion", "computers"],
     ["remote", "computers"],
     ["desktopWorkspaces", "computers"],
@@ -204,6 +204,7 @@ describe("Settings in Simple mode", () => {
   it.each<[AppSettingsSection, string]>([
     ["usage", "usage"],
     ["backups", "backups"],
+    ["decisionModel", "decisionModel"],
     ["experimental", "skillAuthoring"],
   ])("opens a hidden page (%s) for as long as it is the open one", (section, content) => {
     fixture.section = section;

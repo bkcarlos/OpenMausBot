@@ -2444,7 +2444,7 @@
   "computer.addBoatKey": "添加 Boat API 密钥即可为此机器人提供云电脑——它就在这里启动。",
   "call.live.disclosureCloud": "实时通话会将你的语音连同此聊天的近期消息、机器人的回复以及其请求审批的详细信息一并发送给 OpenAI。OpenAI 密钥始终保存在你的 Cloud 上。",
   "sidebar.nav.routines": "日程",
-  "sidebar.nav.routinesHint": "到你选的时间就去做",
+  "sidebar.nav.routinesHint": "到你选的时间，机器人自己去做",
   "sidebar.nav.triggers": "有事发生时",
   "sidebar.nav.triggersHint": "别的应用有事时，自动开始一次对话",
   "sidebar.nav.apps": "邮件和应用",
@@ -2469,10 +2469,16 @@
   "settings.page.ai.lead": "登录你已经在用的 Claude、ChatGPT 或 Grok。只有对方要求时才需要 API 密钥。",
   "settings.page.computers.lead": "把手机配到这台电脑，或连上另一台电脑。在这里聊天不需要这一步。",
   "settings.page.account.lead": "可选。在这台电脑上聊天不需要付费方案。",
-  "chat.startersLabel": "可以先这样开头",
+  "chat.startersLabel": "也可以先做这两件事",
   "chat.starter.help": "你能帮我做什么？",
   "chat.starter.computer": "你在这台电脑上能做什么？",
-  "chat.starter.mail": "帮我接上邮箱",
+  "chat.starter.mail": "连接 Outlook 或 Gmail",
   "newBot.shortLead": "先起个名字，再给它一件事。其余的以后都能改。",
-  "newBot.moreSettings": "更多设置"
+  "newBot.moreSettings": "更多设置",
+  "chat.starter.schedule": "定一个到点就做的事",
+  "directApps.setup": "设置 {name}",
+  "directApps.outlook.summary": "在这台电脑上阅读和发送 Outlook 邮件。不包括日历、文件和 Teams。",
+  "directApps.gmail.summary": "在这里阅读 Gmail 并保存草稿。发送留在 Gmail 里，由你核对草稿。",
+  "directApps.slack.summary": "登录你要用的 Slack 工作区。",
+  "newBot.whatItDoes": "它负责什么"
 }

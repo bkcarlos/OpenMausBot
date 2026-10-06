@@ -18,6 +18,12 @@ const DETAIL: Record<DirectApp["id"], LocaleKey> = {
   slack: "directApps.slack.detail",
 };
 
+const SUMMARY: Record<DirectApp["id"], LocaleKey> = {
+  outlook: "directApps.outlook.summary",
+  gmail: "directApps.gmail.summary",
+  slack: "directApps.slack.summary",
+};
+
 /** Outlook, Gmail, and Slack, each with its own provider sign-in. This
  * section collects the OAuth app the person registered. Tokens stay on
  * this computer. */
@@ -58,21 +64,8 @@ export function DirectAppsSection({
           const pending = busy || signingIn === app.name;
           return (
             <div key={app.id} className="rounded-xl border border-hairline/50 bg-raised/40 p-3.5">
-              <div className="flex flex-wrap items-baseline justify-between gap-2">
-                <div className="text-[13px] font-medium text-ink">{app.title}</div>
-                <button
-                  type="button"
-                  onClick={() => void openExternalLink(app.docsUrl)}
-                  className="text-[11px] text-ink-secondary underline-offset-2 hover:text-ink hover:underline"
-                >
-                  {t("directApps.docs")}
-                </button>
-              </div>
-              <p className="mt-1 text-[12px] leading-relaxed text-ink-secondary">{t(DETAIL[app.id])}</p>
-              <p className="mt-2 text-[11px] text-ink-secondary">{t("directApps.redirect")}</p>
-              <code className="mt-1 block select-all break-all rounded-lg bg-control/70 px-2 py-1.5 font-mono text-[11px] text-ink">
-                {directAppRedirectUri(app)}
-              </code>
+              <div className="text-[13px] font-medium text-ink">{app.title}</div>
+              <p className="mt-1 text-[12px] leading-relaxed text-ink-secondary">{t(SUMMARY[app.id])}</p>
               {card.kind === "name-taken" && (
                 <p role="status" className="mt-2 text-[12px] text-warning">{t("directApps.nameTaken", { name: app.name })}</p>
               )}
@@ -104,6 +97,20 @@ export function DirectAppsSection({
                 </button>
               )}
               {card.kind === "create" && (
+                <details className="mt-3">
+                  <summary className="cursor-pointer text-[13px] font-medium text-ink">{t("directApps.setup", { name: app.title })}</summary>
+                  <p className="mt-2 text-[12px] leading-relaxed text-ink-secondary">{t(DETAIL[app.id])}</p>
+                  <p className="mt-2 text-[11px] text-ink-secondary">{t("directApps.redirect")}</p>
+                  <code className="mt-1 block select-all break-all rounded-lg bg-control/70 px-2 py-1.5 font-mono text-[11px] text-ink">
+                    {directAppRedirectUri(app)}
+                  </code>
+                  <button
+                    type="button"
+                    onClick={() => void openExternalLink(app.docsUrl)}
+                    className="mt-2 text-[11px] text-ink-secondary underline-offset-2 hover:text-ink hover:underline"
+                  >
+                    {t("directApps.docs")}
+                  </button>
                 <div className="mt-3 grid gap-3 sm:grid-cols-2">
                   <label className="block">
                     <span className="text-[12px] font-medium text-ink-secondary">{t("directApps.clientId")}</span>
@@ -153,6 +160,7 @@ export function DirectAppsSection({
                     </button>
                   </div>
                 </div>
+                </details>
               )}
             </div>
           );
