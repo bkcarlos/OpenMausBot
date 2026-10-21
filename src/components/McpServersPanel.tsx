@@ -245,13 +245,13 @@ export function McpServersPanel({ embedded = false, whopCard = false, hideWhop =
   const signInAbort = useRef<AbortController | null>(null);
   const signInComplete = useRef<((result: McpSignInStatus) => void) | null>(null);
   const signInBase = useRef<string | undefined>(undefined);
-  const [outlookAuth, setOutlookAuth] = useState<"none" | "needs-sign-in" | "signed-in">("none");
   const [signInFlow, setSignInFlow] = useState<McpSignInStatus | null>(null);
   const [callbackUrl, setCallbackUrl] = useState("");
   const [callbackError, setCallbackError] = useState<string | null>(null);
   const [completingSignIn, setCompletingSignIn] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
   const [importText, setImportText] = useState("");
+  const [outlookAuth, setOutlookAuth] = useState<"none" | "needs-sign-in" | "signed-in">("none");
   const loadGeneration = useRef(0);
   const mounted = useRef(true);
   const whopServer = servers?.find((server) => isRemoteMcpListing(server) && isWhopServer(server));
